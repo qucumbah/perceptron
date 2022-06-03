@@ -166,22 +166,21 @@ int generateImage(Perceptron* perceptron) {
   //     break;
   // }
 
-  // + 0
+  // 0 +
   switch (kind) {
     case 0:
-      for (int r = top; r < bottom; r += 1) {
-        setReceptor(perceptron, r, centerC, 1);
+      for (int i = 0; i < circleDotCount; i += 1) {
+        int r = centerR + (int)(radius * cos(2 * 3.14 * (i / (double)circleDotCount)));
+        int c = centerC + (int)(radius * sin(2 * 3.14 * (i / (double)circleDotCount)));
+        setReceptor(perceptron, r, c, 1);
       }
       break;
     case 1:
-      for (int i = 0; i < circleDotCount; i += 1) {
-        int r = centerR + radius / 2 + (int)(radius / 2 * cos(3.14 * (i / (double)circleDotCount)));
-        int c = centerC + (int)(radius * sin(3.14 * (i / (double)circleDotCount)));
-        setReceptor(perceptron, r, c, 1);
-
-        r = centerR - radius / 2 + (int)(radius / 2 * cos(3.14 * (i / (double)circleDotCount)));
-        c = centerC + (int)(radius * sin(3.14 * (i / (double)circleDotCount)));
-        setReceptor(perceptron, r, c, 1);
+      for (int r = top; r < bottom; r += 1) {
+        setReceptor(perceptron, r, centerC, 1);
+      }
+      for (int c = left; c < right; c += 1) {
+        setReceptor(perceptron, centerR, c, 1);
       }
       break;
   }

@@ -4,7 +4,7 @@
 int main() {
   Perceptron* perceptron = createPerceptron(20, 20);
 
-  trainPerceptron(perceptron, 1000, 1000);
+  trainPerceptron(perceptron, 100, 100);
 
   for (int i = 0; i < 10; i += 1) {
     presentImage(perceptron);
