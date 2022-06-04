@@ -13,6 +13,7 @@ typedef struct {
   int layerSize;
   int connectionsCount;
   int outputsCount;
+  int binOutputsCount;
   int* receptors;
   int* associations;
   int* outputs;
@@ -60,7 +61,9 @@ int getOutput(Perceptron* perceptron, int outputNumber) {
 }
 
 Position* getConnection(Perceptron* perceptron, int row, int col, int number) {
-  return perceptron->connections + row * perceptron->layerSize + col * perceptron->connectionsCount + number;
+  int index = row * perceptron->layerSize * perceptron->connectionsCount + col * perceptron->connectionsCount + number;
+  // printf("%d\n", index);
+  return perceptron->connections + index;
 }
 
 Perceptron* createPerceptron(int layerSize, int connectionsCount, int outputsCount) {
@@ -69,13 +72,21 @@ Perceptron* createPerceptron(int layerSize, int connectionsCount, int outputsCou
   result->layerSize = layerSize;
   result->connectionsCount = connectionsCount;
   result->outputsCount = outputsCount;
+  result->binOutputsCount = log2int(outputsCount);
 
   result->receptors = malloc(layerSize * layerSize * sizeof(int));
   result->associations = malloc(layerSize * layerSize * sizeof(int));
-  result->outputs = malloc(outputsCount * sizeof(int));
+  result->outputs = malloc(result->binOutputsCount * sizeof(int));
 
-  result->weights = malloc(layerSize * layerSize * outputsCount * sizeof(double));
+  result->weights = malloc(layerSize * layerSize * result->binOutputsCount * sizeof(double));
   result->connections = malloc(layerSize * layerSize * connectionsCount * sizeof(Position));
+
+  getConnection(result, 6, 8, 1);
+
+  printf("%d\n", layerSize);
+  printf("%d\n", layerSize * layerSize);
+  printf("%d\n", layerSize * layerSize * connectionsCount);
+  printf("%d\n", layerSize * layerSize * connectionsCount * sizeof(Position));
   for (int r = 0; r < layerSize; r += 1) {
     for (int c = 0; c < layerSize; c += 1) {
       for (int k = 0; k < connectionsCount; k += 1) {
@@ -84,7 +95,7 @@ Perceptron* createPerceptron(int layerSize, int connectionsCount, int outputsCou
         connection->col = rand() % layerSize;
       }
 
-      for (int o = 0; o < outputsCount; o += 1) {
+      for (int o = 0; o < result->binOutputsCount; o += 1) {
         setWeight(result, r, c, o, 0);
       }
     }
@@ -153,7 +164,11 @@ void associate(Perceptron* perceptron) {
       }
 
       for (int k = 0; k < perceptron->connectionsCount; k += 1) {
+        if (k == 6 && c == 8 && r == 1) {
+          printf("%ld %d\n", getConnection(perceptron, r, c, k), getConnection(perceptron, r, c, k)->row);
+        }
         Position* connectedAssociation = getConnection(perceptron, r, c, k);
+
         incAssociation(perceptron, connectedAssociation->row, connectedAssociation->col);
       }
     }
@@ -177,11 +192,11 @@ void associate(Perceptron* perceptron) {
 }
 
 void recognize(Perceptron* perceptron) {
-  double* outputsDouble = calloc(perceptron->outputsCount, sizeof(double));
+  double* outputsDouble = calloc(perceptron->binOutputsCount, sizeof(double));
 
   for (int r = 0; r < perceptron->layerSize; r += 1) {
     for (int c = 0; c < perceptron->layerSize; c += 1) {
-      for (int o = 0; o < perceptron->outputsCount; o += 1) {
+      for (int o = 0; o < perceptron->binOutputsCount; o += 1) {
         int association = getAssociation(perceptron, r, c);
         double weight = getWeight(perceptron, r, c, o);
         outputsDouble[o] += association * weight;
@@ -189,15 +204,15 @@ void recognize(Perceptron* perceptron) {
     }
   }
 
-  for (int o = 0; o < perceptron->outputsCount; o += 1) {
+  for (int o = 0; o < perceptron->binOutputsCount; o += 1) {
     setOutput(perceptron, o, outputsDouble[o] > 0);
   }
 }
 
 bool isOutputCorrect(Perceptron* perceptron, int expectedImage) {
-  for (int o = 0; o < perceptron->outputsCount; o += 1) {
+  for (int o = 0; o < perceptron->binOutputsCount; o += 1) {
     int outputValue = getOutput(perceptron, o);
-    int expectedValue = o == expectedImage;
+    int expectedValue = expectedImage >> (perceptron->binOutputsCount - 1 - o) & 1;
     if (outputValue != expectedValue) {
       return false;
     }
@@ -213,9 +228,9 @@ void adjust(Perceptron* perceptron, int expectedImage) {
         continue;
       }
 
-      for (int o = 0; o < perceptron->outputsCount; o += 1) {
+      for (int o = 0; o < perceptron->binOutputsCount; o += 1) {
         int outputValue = perceptron->outputs[o];
-        int expectedValue = o == expectedImage;
+        int expectedValue = expectedImage >> (perceptron->binOutputsCount - 1 - o) & 1;
         if (outputValue == expectedValue) {
           continue;
         }
@@ -301,9 +316,9 @@ void presentImage(Perceptron* perceptron) {
 
   printf(
     "Expected: %d %d %d %d\n", 
-    expectedImage == 0,
-    expectedImage == 1,
-    expectedImage == 2,
-    expectedImage == 3
+    expectedImage >> (perceptron->binOutputsCount - 1) & 1,
+    expectedImage >> (perceptron->binOutputsCount - 2) & 1,
+    expectedImage >> (perceptron->binOutputsCount - 3) & 1,
+    expectedImage >> (perceptron->binOutputsCount - 4) & 1
   );
 }
