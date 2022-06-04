@@ -24,8 +24,6 @@ void readImageTo(char* inFilePath, BinImage* result) {
   fread(data, 1, width * height, inFile);
 
   fclose(inFile);
-
-  return result;
 }
 
 BinImage* readImage(char* inFilePath) {
