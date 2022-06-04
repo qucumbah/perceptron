@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <assert.h>
+#include <stdbool.h>
 
 #include "util.h"
 #include "BinImage.h"
@@ -11,8 +12,10 @@
 typedef struct {
   int layerSize;
   int connectionsCount;
+  int outputsCount;
   int* receptors;
   int* associations;
+  int* outputs;
   Position* connections;
   double* weights;
 } Perceptron;
@@ -42,43 +45,47 @@ void incAssociation(Perceptron* perceptron, int row, int col) {
   setIntArray2d(perceptron->associations, perceptron->layerSize, row, col, newValue);
 }
 
-void setDoubleArray2d(double* array, int size, int row, int col, double value) {
-  array[row * size + col] = value;
+void setWeight(Perceptron* perceptron, int row, int col, int out, double value) {
+  perceptron->weights[row * perceptron->layerSize * perceptron->outputsCount + col * perceptron->outputsCount + out] = value;
 }
-double getDoubleArray2d(double* array, int size, int row, int col) {
-  return array[row * size + col];
+double getWeight(Perceptron* perceptron, int row, int col, int out) {
+  return perceptron->weights[row * perceptron->layerSize * perceptron->outputsCount + col * perceptron->outputsCount + out];
 }
 
-void setWeight(Perceptron* perceptron, int row, int col, double value) {
-  setDoubleArray2d(perceptron->weights, perceptron->layerSize, row, col, value);
+void setOutput(Perceptron* perceptron, int outputNumber, int value) {
+  perceptron->outputs[outputNumber] = value;
 }
-double getWeight(Perceptron* perceptron, int row, int col) {
-  return getDoubleArray2d(perceptron->weights, perceptron->layerSize, row, col);
+int getOutput(Perceptron* perceptron, int outputNumber) {
+  return perceptron->outputs[outputNumber];
 }
 
 Position* getConnection(Perceptron* perceptron, int row, int col, int number) {
   return perceptron->connections + row * perceptron->layerSize + col * perceptron->connectionsCount + number;
 }
 
-Perceptron* createPerceptron(int layerSize, int connectionsCount) {
+Perceptron* createPerceptron(int layerSize, int connectionsCount, int outputsCount) {
   Perceptron* result = malloc(sizeof(Perceptron));
 
   result->layerSize = layerSize;
   result->connectionsCount = connectionsCount;
+  result->outputsCount = outputsCount;
 
   result->receptors = malloc(layerSize * layerSize * sizeof(int));
   result->associations = malloc(layerSize * layerSize * sizeof(int));
+  result->outputs = malloc(outputsCount * sizeof(int));
 
-  result->weights = malloc(layerSize * layerSize * sizeof(double));
+  result->weights = malloc(layerSize * layerSize * outputsCount * sizeof(double));
   result->connections = malloc(layerSize * layerSize * connectionsCount * sizeof(Position));
   for (int r = 0; r < layerSize; r += 1) {
     for (int c = 0; c < layerSize; c += 1) {
-      setWeight(result, r, c, 0);
-
       for (int k = 0; k < connectionsCount; k += 1) {
         Position* connection = getConnection(result, r, c, k);
         connection->row = rand() % layerSize;
         connection->col = rand() % layerSize;
+      }
+
+      for (int o = 0; o < outputsCount; o += 1) {
+        setWeight(result, r, c, o, 0);
       }
     }
   }
@@ -86,12 +93,23 @@ Perceptron* createPerceptron(int layerSize, int connectionsCount) {
   return result;
 }
 
-int generateImage(Perceptron* perceptron, BinImage* threeImage) {
-  int kind = rand() % 2;
+BinImage* getBinImages(int count) {
+  BinImage* result = malloc(count * sizeof(BinImage));
 
+  char inFilePath[256];
+  for (int i = 0; i < count; i += 1) {
+    sprintf(inFilePath, "./img/%d.bin", i + 1);
+    readImageTo(inFilePath, &result[i]);
+  }
+
+  return result;
+}
+
+int generateAndReceiveImage(Perceptron* perceptron, BinImage* images) {
   int radius = rand() % (perceptron->layerSize / 2);
-  if (radius < 3) {
-    radius = 3;
+  int treshold = 5;
+  if (radius < treshold) {
+    radius = treshold;
   }
 
   int centerR = (rand() % (int)(perceptron->layerSize - 2 * radius)) + radius;
@@ -99,11 +117,9 @@ int generateImage(Perceptron* perceptron, BinImage* threeImage) {
 
   int top = centerR - radius;
   int left = centerC - radius;
-  int right = centerC + radius;
-  int bottom = centerR + radius;
-  
 
-  int circleDotCount = 100;
+  int kind = rand() % perceptron->outputsCount;
+  BinImage* image = &images[kind];
 
   for (int r = 0; r < perceptron->layerSize; r += 1) {
     for (int c = 0; c < perceptron->layerSize; c += 1) {
@@ -111,23 +127,13 @@ int generateImage(Perceptron* perceptron, BinImage* threeImage) {
     }
   }
 
-  // 1 3
-  switch (kind) {
-    case 0:
-      for (int r = top; r < bottom; r += 1) {
-        setReceptor(perceptron, r, centerC, 1);
-      }
-      break;
-    case 1:
-      for (int r = 0; r < 2 * radius; r += 1) {
-        for (int c = 0; c < 2 * radius; c += 1) {
-          int threeR = (int)(r / (2.0 * radius) * threeImage->width);
-          int threeC = (int)(c / (2.0 * radius) * threeImage->height);
-          int pixel = getPixel(threeImage, threeR, threeC);
-          setReceptor(perceptron, left + r, top + c, pixel);
-        }
-      }
-      break;
+  for (int r = 0; r < 2 * radius; r += 1) {
+    for (int c = 0; c < 2 * radius; c += 1) {
+      int threeR = (int)(r / (2.0 * radius) * image->width);
+      int threeC = (int)(c / (2.0 * radius) * image->height);
+      int pixel = getPixel(image, threeR, threeC);
+      setReceptor(perceptron, left + r, top + c, pixel);
+    }
   }
 
   return kind;
@@ -156,9 +162,7 @@ void associate(Perceptron* perceptron) {
   for (int r = 0; r < perceptron->layerSize; r += 1) {
     for (int c = 0; c < perceptron->layerSize; c += 1) {
       int association = getAssociation(perceptron, r, c);
-      if (association > 0) {
-        setAssociation(perceptron, r, c, 1);
-      }
+      setAssociation(perceptron, r, c, association > 2);
     }
   }
 
@@ -172,16 +176,34 @@ void associate(Perceptron* perceptron) {
   // printf("");
 }
 
-int recognize(Perceptron* perceptron) {
-  double out = 0;
+void recognize(Perceptron* perceptron) {
+  double* outputsDouble = calloc(perceptron->outputsCount, sizeof(double));
 
   for (int r = 0; r < perceptron->layerSize; r += 1) {
     for (int c = 0; c < perceptron->layerSize; c += 1) {
-      out += getAssociation(perceptron, r, c) * getWeight(perceptron, r, c);
+      for (int o = 0; o < perceptron->outputsCount; o += 1) {
+        int association = getAssociation(perceptron, r, c);
+        double weight = getWeight(perceptron, r, c, o);
+        outputsDouble[o] += association * weight;
+      }
     }
   }
 
-  return out > 0;
+  for (int o = 0; o < perceptron->outputsCount; o += 1) {
+    setOutput(perceptron, o, outputsDouble[o] > 0);
+  }
+}
+
+bool isOutputCorrect(Perceptron* perceptron, int expectedImage) {
+  for (int o = 0; o < perceptron->outputsCount; o += 1) {
+    int outputValue = getOutput(perceptron, o);
+    int expectedValue = o == expectedImage;
+    if (outputValue != expectedValue) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 void adjust(Perceptron* perceptron, int expectedImage) {
@@ -191,26 +213,53 @@ void adjust(Perceptron* perceptron, int expectedImage) {
         continue;
       }
 
-      double curWeight = getWeight(perceptron, r, c);
+      for (int o = 0; o < perceptron->outputsCount; o += 1) {
+        int outputValue = perceptron->outputs[o];
+        int expectedValue = o == expectedImage;
+        if (outputValue == expectedValue) {
+          continue;
+        }
 
-      double adjustment = (expectedImage == 1) ? 0.1 : -0.1;
+        double curWeight = getWeight(perceptron, r, c, o);
 
-      setWeight(perceptron, r, c, curWeight + adjustment);
+        double adjustment = (expectedValue == 1) ? 0.1 : -0.1;
+
+        setWeight(perceptron, r, c, o, curWeight + adjustment);
+      }
     }
   }
+
+  // printf("Expecting %d\n", expectedImage);
+
+  // for (int r = 0; r < perceptron->layerSize; r += 1) {
+  //   for (int c = 0; c < perceptron->layerSize; c += 1) {
+  //     printf("%c", getAssociation(perceptron, r, c) ? '#' : '.');
+  //   }
+  //   printf("\n");
+  // }
+
+  // for (int o = 0; o < perceptron->outputsCount; o += 1) {
+  //   for (int r = 0; r < perceptron->layerSize; r += 1) {
+  //     for (int c = 0; c < perceptron->layerSize; c += 1) {
+  //       printf("%c", getWeight(perceptron, r, c, o) ? '#' : '.');
+  //     }
+  //     printf("\n");
+  //   }
+  //   printf("--------\n");
+  // }
+  // printf("--------\n");
 }
 
 void trainPerceptron(Perceptron* perceptron, int batches, int batchSize) {
-  BinImage* threeImage = readImage("three.bin");
+  BinImage* images = getBinImages(perceptron->outputsCount);
   for (int batch = 0; batch < batches; batch += 1) {
     int correct = 0;
     for (int step = 0; step < batchSize; step += 1) {
-      int expectedImage = generateImage(perceptron, threeImage);
-
+      int expectedImage = generateAndReceiveImage(perceptron, images);
       associate(perceptron);
-      int recognizedImage = recognize(perceptron);
+      recognize(perceptron);
 
-      if (expectedImage == recognizedImage) {
+      if (isOutputCorrect(perceptron, expectedImage)) {
         correct += 1;
       } else {
         adjust(perceptron, expectedImage);
@@ -219,23 +268,15 @@ void trainPerceptron(Perceptron* perceptron, int batches, int batchSize) {
 
     printf("Correct: %d\n", correct);
   }
-  printf("Weights:\n");
-
-  for (int r = 0; r < perceptron->layerSize; r += 1) {
-    for (int c = 0; c < perceptron->layerSize; c += 1) {
-      printf("%c", (getWeight(perceptron, r, c) > 0) ? '+' : '-');
-    }
-    printf("\n");
-  }
 }
 
 void presentImage(Perceptron* perceptron) {
-  BinImage* threeImage = readImage("three.bin");
+  BinImage* images = getBinImages(perceptron->outputsCount);
 
-  int expectedImage = generateImage(perceptron, threeImage);
+  int expectedImage = generateAndReceiveImage(perceptron, images);
 
   associate(perceptron);
-  int recognizedImage = recognize(perceptron);
+  recognize(perceptron);
 
   for (int r = 0; r < perceptron->layerSize; r += 1) {
     for (int c = 0; c < perceptron->layerSize; c += 1) {
@@ -244,9 +285,25 @@ void presentImage(Perceptron* perceptron) {
     printf("\n");
   }
 
-  if (recognizedImage == 0) {
-    printf("1\n");
+  if (isOutputCorrect(perceptron, expectedImage)) {
+    printf("Guessed correctly:\n");
   } else {
-    printf("3\n");
+    printf("Guessed incorrectly:\n");
   }
+
+  printf(
+    "Guessed:  %d %d %d %d\n", 
+    perceptron->outputs[0],
+    perceptron->outputs[1],
+    perceptron->outputs[2],
+    perceptron->outputs[3]
+  );
+
+  printf(
+    "Expected: %d %d %d %d\n", 
+    expectedImage == 0,
+    expectedImage == 1,
+    expectedImage == 2,
+    expectedImage == 3
+  );
 }

@@ -7,10 +7,8 @@ typedef struct {
   int height;
 } BinImage;
 
-BinImage* readImage(char* inFilePath) {
+void readImageTo(char* inFilePath, BinImage* result) {
   FILE* inFile = fopen(inFilePath, "rb");
-
-  BinImage* result = malloc(sizeof(BinImage));
 
   int width;
   int height;
@@ -27,6 +25,12 @@ BinImage* readImage(char* inFilePath) {
 
   fclose(inFile);
 
+  return result;
+}
+
+BinImage* readImage(char* inFilePath) {
+  BinImage* result = malloc(sizeof(BinImage));
+  readImageTo(inFilePath, result);
   return result;
 }
 
