@@ -4,6 +4,7 @@
 #include <assert.h>
 
 #include "util.h"
+#include "BinImage.h"
 
 #pragma once
 
@@ -85,12 +86,12 @@ Perceptron* createPerceptron(int layerSize, int connectionsCount) {
   return result;
 }
 
-int generateImage(Perceptron* perceptron) {
+int generateImage(Perceptron* perceptron, BinImage* threeImage) {
   int kind = rand() % 2;
 
   int radius = rand() % (perceptron->layerSize / 2);
-  if (radius < 5) {
-    radius = 5;
+  if (radius < 3) {
+    radius = 3;
   }
 
   int centerR = (rand() % (int)(perceptron->layerSize - 2 * radius)) + radius;
@@ -100,6 +101,7 @@ int generateImage(Perceptron* perceptron) {
   int left = centerC - radius;
   int right = centerC + radius;
   int bottom = centerR + radius;
+  
 
   int circleDotCount = 100;
 
@@ -109,88 +111,24 @@ int generateImage(Perceptron* perceptron) {
     }
   }
 
-  // О П С Т
-  // switch (kind) {
-  //   case 0:
-  //     for (int i = 0; i < circleDotCount; i += 1) {
-  //       int r = centerR + (int)(radius * cos(2 * 3.14 * (i / (double)circleDotCount)));
-  //       int c = centerC + (int)(radius * sin(2 * 3.14 * (i / (double)circleDotCount)));
-  //       setReceptor(perceptron, r, c, 1);
-  //     }
-  //     break;
-  //   case 1:
-  //     for (int r = top; r < bottom; r += 1) {
-  //       setReceptor(perceptron, r, left, 1);
-  //       setReceptor(perceptron, r, right, 1);
-  //     }
-
-  //     for (int c = left; c < right; c += 1) {
-  //       setReceptor(perceptron, top, c, 1);
-  //     }
-  //     break;
-  //   case 2:
-  //     for (int i = 0; i < circleDotCount; i += 1) {
-  //       int r = centerR - (int)(radius * cos(3.14 * (i / (double)circleDotCount)));
-  //       int c = centerC - (int)(radius * sin(3.14 * (i / (double)circleDotCount)));
-  //       setReceptor(perceptron, r, c, 1);
-  //     }
-  //     break;
-  //   case 3:
-  //     for (int r = top; r < bottom; r += 1) {
-  //       setReceptor(perceptron, r, centerC, 1);
-  //     }
-
-  //     for (int c = left; c < right; c += 1) {
-  //       setReceptor(perceptron, top, c, 1);
-  //     }
-  //     break;
-  // }
-
   // 1 3
-  // switch (kind) {
-  //   case 0:
-  //     for (int r = top; r < bottom; r += 1) {
-  //       setReceptor(perceptron, r, centerC, 1);
-  //     }
-  //     break;
-  //   case 1:
-  //     for (int i = 0; i < circleDotCount; i += 1) {
-  //       int r = centerR + radius / 2 + (int)(radius / 2 * cos(3.14 * (i / (double)circleDotCount)));
-  //       int c = centerC + (int)(radius * sin(3.14 * (i / (double)circleDotCount)));
-  //       setReceptor(perceptron, r, c, 1);
-
-  //       r = centerR - radius / 2 + (int)(radius / 2 * cos(3.14 * (i / (double)circleDotCount)));
-  //       c = centerC + (int)(radius * sin(3.14 * (i / (double)circleDotCount)));
-  //       setReceptor(perceptron, r, c, 1);
-  //     }
-  //     break;
-  // }
-
-  // 0 +
   switch (kind) {
     case 0:
-      for (int i = 0; i < circleDotCount; i += 1) {
-        int r = centerR + (int)(radius * cos(2 * 3.14 * (i / (double)circleDotCount)));
-        int c = centerC + (int)(radius * sin(2 * 3.14 * (i / (double)circleDotCount)));
-        setReceptor(perceptron, r, c, 1);
-      }
-      break;
-    case 1:
       for (int r = top; r < bottom; r += 1) {
         setReceptor(perceptron, r, centerC, 1);
       }
-      for (int c = left; c < right; c += 1) {
-        setReceptor(perceptron, centerR, c, 1);
+      break;
+    case 1:
+      for (int r = 0; r < 2 * radius; r += 1) {
+        for (int c = 0; c < 2 * radius; c += 1) {
+          int threeR = (int)(r / (2.0 * radius) * threeImage->width);
+          int threeC = (int)(c / (2.0 * radius) * threeImage->height);
+          int pixel = getPixel(threeImage, threeR, threeC);
+          setReceptor(perceptron, left + r, top + c, pixel);
+        }
       }
       break;
   }
-
-  // for (int r = 0; r < perceptron->layerSize; r += 1) {
-  //   for (int c = 0; c < perceptron->layerSize; c += 1) {
-  //     printf("%c", getReceptor(perceptron, r, c) ? '#' : '.');
-  //   }
-  //   printf("\n");
-  // }
 
   return kind;
 }
@@ -263,10 +201,11 @@ void adjust(Perceptron* perceptron, int expectedImage) {
 }
 
 void trainPerceptron(Perceptron* perceptron, int batches, int batchSize) {
+  BinImage* threeImage = readImage("three.bin");
   for (int batch = 0; batch < batches; batch += 1) {
     int correct = 0;
     for (int step = 0; step < batchSize; step += 1) {
-      int expectedImage = generateImage(perceptron);
+      int expectedImage = generateImage(perceptron, threeImage);
 
       associate(perceptron);
       int recognizedImage = recognize(perceptron);
@@ -291,7 +230,9 @@ void trainPerceptron(Perceptron* perceptron, int batches, int batchSize) {
 }
 
 void presentImage(Perceptron* perceptron) {
-  int expectedImage = generateImage(perceptron);
+  BinImage* threeImage = readImage("three.bin");
+
+  int expectedImage = generateImage(perceptron, threeImage);
 
   associate(perceptron);
   int recognizedImage = recognize(perceptron);
