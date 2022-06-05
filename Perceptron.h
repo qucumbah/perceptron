@@ -61,11 +61,6 @@ int getOutput(Perceptron* perceptron, int outputNumber) {
 }
 
 Position* getConnection(Perceptron* perceptron, int row, int col, int number) {
-  // int index = row * perceptron->layerSize * perceptron->connectionsCount + col * perceptron->connectionsCount + number;
-  // printf("%d\n", index);
-  // return perceptron->connections + index;
-  // printf("%d %d %d %d\n", row,col,number, row * perceptron->layerSize + col * perceptron->connectionsCount + number);
-  // return perceptron->connections + row * perceptron->layerSize + col * perceptron->connectionsCount + number;
   return perceptron->connections + row * perceptron->layerSize * perceptron->connectionsCount + col * perceptron->connectionsCount + number;
 }
 
@@ -84,12 +79,6 @@ Perceptron* createPerceptron(int layerSize, int connectionsCount, int outputsCou
   result->weights = malloc(layerSize * layerSize * result->binOutputsCount * sizeof(double));
   result->connections = malloc(layerSize * layerSize * connectionsCount * sizeof(Position));
 
-  getConnection(result, 6, 8, 1);
-
-  printf("%d\n", layerSize);
-  printf("%d\n", layerSize * layerSize);
-  printf("%d\n", layerSize * layerSize * connectionsCount);
-  printf("%d\n", layerSize * layerSize * connectionsCount * sizeof(Position));
   int* tos = calloc(1, layerSize * layerSize * sizeof(int));
   for (int r = 0; r < layerSize; r += 1) {
     for (int c = 0; c < layerSize; c += 1) {
@@ -105,17 +94,6 @@ Perceptron* createPerceptron(int layerSize, int connectionsCount, int outputsCou
       }
     }
   }
-
-  // FILE* f = fopen("tos.txt", "w");
-  // for (int r = 0; r < layerSize; r += 1) {
-  //   for (int c = 0; c < layerSize; c += 1) {
-  //     fprintf(f, "%d ", tos[r * layerSize + c]);
-  //   }
-  //   fprintf(f, "\n");
-  // }
-  // fclose(f);
-
-  // assert(false);
 
   return result;
 }
@@ -186,29 +164,9 @@ void associate(Perceptron* perceptron) {
         Position* connectedAssociation = getConnection(perceptron, r, c, k);
 
         incAssociation(perceptron, connectedAssociation->row, connectedAssociation->col);
-        // printf("%d %d %d\n", connectedAssociation->row, connectedAssociation->col, getAssociation(
-        //   perceptron, connectedAssociation->row, connectedAssociation->col
-        // ));
       }
     }
   }
-
-  // int total = 0;
-  // for (int r = 0; r < perceptron->layerSize; r += 1) {
-  //   for (int c = 0; c < perceptron->layerSize; c += 1) {
-  //     int ok = getAssociation(perceptron, r, c);
-  //     total += ok;
-
-  //     char c;
-  //     if (ok > 9) {
-  //       c = '*';
-  //     } else {
-  //       c = ok + '0';
-  //     }
-  //     printf("%c", c);
-  //   }
-  //   printf("\n");
-  // }
 
   for (int r = 0; r < perceptron->layerSize; r += 1) {
     for (int c = 0; c < perceptron->layerSize; c += 1) {
@@ -216,15 +174,6 @@ void associate(Perceptron* perceptron) {
       setAssociation(perceptron, r, c, association > 2);
     }
   }
-
-  // for (int r = 0; r < perceptron->layerSize; r += 1) {
-  //   for (int c = 0; c < perceptron->layerSize; c += 1) {
-  //     printf("%c", getAssociation(perceptron, r, c) ? '#' : '.');
-  //   }
-  //   printf("\n");
-  // }
-
-  // printf("%d %d\n", total, incs);
 }
 
 void recognize(Perceptron* perceptron) {
@@ -279,26 +228,6 @@ void adjust(Perceptron* perceptron, int expectedImage) {
       }
     }
   }
-
-  // printf("Expecting %d\n", expectedImage);
-
-  // for (int r = 0; r < perceptron->layerSize; r += 1) {
-  //   for (int c = 0; c < perceptron->layerSize; c += 1) {
-  //     printf("%c", getAssociation(perceptron, r, c) ? '#' : '.');
-  //   }
-  //   printf("\n");
-  // }
-
-  // for (int o = 0; o < perceptron->outputsCount; o += 1) {
-  //   for (int r = 0; r < perceptron->layerSize; r += 1) {
-  //     for (int c = 0; c < perceptron->layerSize; c += 1) {
-  //       printf("%c", getWeight(perceptron, r, c, o) ? '#' : '.');
-  //     }
-  //     printf("\n");
-  //   }
-  //   printf("--------\n");
-  // }
-  // printf("--------\n");
 }
 
 void trainPerceptron(Perceptron* perceptron, int batches, int batchSize) {
