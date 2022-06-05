@@ -60,7 +60,7 @@ int getOutput(Perceptron* perceptron, int outputNumber) {
 }
 
 Position* getConnection(Perceptron* perceptron, int row, int col, int number) {
-  return perceptron->connections + row * perceptron->layerSize + col * perceptron->connectionsCount + number;
+  return perceptron->connections + row * perceptron->layerSize * perceptron->connectionsCount + col * perceptron->connectionsCount + number;
 }
 
 Perceptron* createPerceptron(int layerSize, int connectionsCount, int outputsCount) {
