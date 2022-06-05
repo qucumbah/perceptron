@@ -47,10 +47,10 @@ void incAssociation(Perceptron* perceptron, int row, int col) {
 }
 
 void setWeight(Perceptron* perceptron, int row, int col, int out, double value) {
-  perceptron->weights[row * perceptron->layerSize * perceptron->outputsCount + col * perceptron->outputsCount + out] = value;
+  perceptron->weights[row * perceptron->layerSize * perceptron->binOutputsCount + col * perceptron->binOutputsCount + out] = value;
 }
 double getWeight(Perceptron* perceptron, int row, int col, int out) {
-  return perceptron->weights[row * perceptron->layerSize * perceptron->outputsCount + col * perceptron->outputsCount + out];
+  return perceptron->weights[row * perceptron->layerSize * perceptron->binOutputsCount + col * perceptron->binOutputsCount + out];
 }
 
 void setOutput(Perceptron* perceptron, int outputNumber, int value) {
@@ -65,8 +65,8 @@ Position* getConnection(Perceptron* perceptron, int row, int col, int number) {
   // printf("%d\n", index);
   // return perceptron->connections + index;
   // printf("%d %d %d %d\n", row,col,number, row * perceptron->layerSize + col * perceptron->connectionsCount + number);
-  return perceptron->connections + row * perceptron->layerSize + col * perceptron->connectionsCount + number;
-  // return perceptron->connections + row * perceptron->layerSize * perceptron->connectionsCount + col * perceptron->connectionsCount + number;
+  // return perceptron->connections + row * perceptron->layerSize + col * perceptron->connectionsCount + number;
+  return perceptron->connections + row * perceptron->layerSize * perceptron->connectionsCount + col * perceptron->connectionsCount + number;
 }
 
 Perceptron* createPerceptron(int layerSize, int connectionsCount, int outputsCount) {
@@ -182,9 +182,6 @@ void associate(Perceptron* perceptron) {
       }
 
       for (int k = 0; k < perceptron->connectionsCount; k += 1) {
-        if (k == 6 && c == 8 && r == 1) {
-          printf("%ld %d\n", getConnection(perceptron, r, c, k), getConnection(perceptron, r, c, k)->row);
-        }
         incs += 1;
         Position* connectedAssociation = getConnection(perceptron, r, c, k);
 
