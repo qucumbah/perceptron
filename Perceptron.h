@@ -213,7 +213,7 @@ void associate(Perceptron* perceptron) {
   for (int r = 0; r < perceptron->layerSize; r += 1) {
     for (int c = 0; c < perceptron->layerSize; c += 1) {
       int association = getAssociation(perceptron, r, c);
-      setAssociation(perceptron, r, c, association > 10);
+      setAssociation(perceptron, r, c, association > 2);
     }
   }
 
@@ -343,18 +343,14 @@ void presentImage(Perceptron* perceptron) {
   }
 
   printf(
-    "Guessed:  %d %d %d %d\n", 
+    "Guessed:  %d%d\n", 
     perceptron->outputs[0],
-    perceptron->outputs[1],
-    perceptron->outputs[2],
-    perceptron->outputs[3]
+    perceptron->outputs[1]
   );
 
   printf(
-    "Expected: %d %d %d %d\n", 
+    "Expected: %d%d\n", 
     expectedImage >> (perceptron->binOutputsCount - 1) & 1,
-    expectedImage >> (perceptron->binOutputsCount - 2) & 1,
-    expectedImage >> (perceptron->binOutputsCount - 3) & 1,
-    expectedImage >> (perceptron->binOutputsCount - 4) & 1
+    expectedImage >> (perceptron->binOutputsCount - 2) & 1
   );
 }
