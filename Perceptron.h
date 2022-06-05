@@ -61,9 +61,12 @@ int getOutput(Perceptron* perceptron, int outputNumber) {
 }
 
 Position* getConnection(Perceptron* perceptron, int row, int col, int number) {
-  int index = row * perceptron->layerSize * perceptron->connectionsCount + col * perceptron->connectionsCount + number;
+  // int index = row * perceptron->layerSize * perceptron->connectionsCount + col * perceptron->connectionsCount + number;
   // printf("%d\n", index);
-  return perceptron->connections + index;
+  // return perceptron->connections + index;
+  // printf("%d %d %d %d\n", row,col,number, row * perceptron->layerSize + col * perceptron->connectionsCount + number);
+  return perceptron->connections + row * perceptron->layerSize + col * perceptron->connectionsCount + number;
+  // return perceptron->connections + row * perceptron->layerSize * perceptron->connectionsCount + col * perceptron->connectionsCount + number;
 }
 
 Perceptron* createPerceptron(int layerSize, int connectionsCount, int outputsCount) {
@@ -87,12 +90,14 @@ Perceptron* createPerceptron(int layerSize, int connectionsCount, int outputsCou
   printf("%d\n", layerSize * layerSize);
   printf("%d\n", layerSize * layerSize * connectionsCount);
   printf("%d\n", layerSize * layerSize * connectionsCount * sizeof(Position));
+  int* tos = calloc(1, layerSize * layerSize * sizeof(int));
   for (int r = 0; r < layerSize; r += 1) {
     for (int c = 0; c < layerSize; c += 1) {
       for (int k = 0; k < connectionsCount; k += 1) {
         Position* connection = getConnection(result, r, c, k);
         connection->row = rand() % layerSize;
         connection->col = rand() % layerSize;
+        tos[connection->row * layerSize + connection->col] += 1;
       }
 
       for (int o = 0; o < result->binOutputsCount; o += 1) {
@@ -100,6 +105,17 @@ Perceptron* createPerceptron(int layerSize, int connectionsCount, int outputsCou
       }
     }
   }
+
+  // FILE* f = fopen("tos.txt", "w");
+  // for (int r = 0; r < layerSize; r += 1) {
+  //   for (int c = 0; c < layerSize; c += 1) {
+  //     fprintf(f, "%d ", tos[r * layerSize + c]);
+  //   }
+  //   fprintf(f, "\n");
+  // }
+  // fclose(f);
+
+  // assert(false);
 
   return result;
 }
@@ -157,6 +173,8 @@ void associate(Perceptron* perceptron) {
     }
   }
 
+  int incs = 0;
+
   for (int r = 0; r < perceptron->layerSize; r += 1) {
     for (int c = 0; c < perceptron->layerSize; c += 1) {
       if (getReceptor(perceptron, r, c) == 0) {
@@ -167,17 +185,38 @@ void associate(Perceptron* perceptron) {
         if (k == 6 && c == 8 && r == 1) {
           printf("%ld %d\n", getConnection(perceptron, r, c, k), getConnection(perceptron, r, c, k)->row);
         }
+        incs += 1;
         Position* connectedAssociation = getConnection(perceptron, r, c, k);
 
         incAssociation(perceptron, connectedAssociation->row, connectedAssociation->col);
+        // printf("%d %d %d\n", connectedAssociation->row, connectedAssociation->col, getAssociation(
+        //   perceptron, connectedAssociation->row, connectedAssociation->col
+        // ));
       }
     }
   }
 
+  // int total = 0;
+  // for (int r = 0; r < perceptron->layerSize; r += 1) {
+  //   for (int c = 0; c < perceptron->layerSize; c += 1) {
+  //     int ok = getAssociation(perceptron, r, c);
+  //     total += ok;
+
+  //     char c;
+  //     if (ok > 9) {
+  //       c = '*';
+  //     } else {
+  //       c = ok + '0';
+  //     }
+  //     printf("%c", c);
+  //   }
+  //   printf("\n");
+  // }
+
   for (int r = 0; r < perceptron->layerSize; r += 1) {
     for (int c = 0; c < perceptron->layerSize; c += 1) {
       int association = getAssociation(perceptron, r, c);
-      setAssociation(perceptron, r, c, association > 2);
+      setAssociation(perceptron, r, c, association > 10);
     }
   }
 
@@ -188,7 +227,7 @@ void associate(Perceptron* perceptron) {
   //   printf("\n");
   // }
 
-  // printf("");
+  // printf("%d %d\n", total, incs);
 }
 
 void recognize(Perceptron* perceptron) {
